@@ -1,0 +1,20 @@
+{
+  "name": "node-avalera",
+  "version": "0.0.0",
+  "description": "Node library to communicate with Avalera",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --reporter spec"
+  },
+  "keywords": [
+    "Avalera",
+    "Avatax",
+    "tax"
+  ],
+  "author": "Daniel Hritzkiv <daniel.hritzkiv@gmail.com> (http://danielhritzkiv.com/)",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^1.17.1",
+    "precommit-hook": "^0.3.10"
+  }
+}
