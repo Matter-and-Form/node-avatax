@@ -1,0 +1,22 @@
+{
+  "name": "AvaTax",
+  "version": "0.0.5",
+  "description": "Node library to communicate with Avalara AvaTax",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --reporter spec"
+  },
+  "keywords": [
+    "Avalara",
+    "AvaTax",
+    "Avalara AvaTax",
+    "tax"
+  ],
+  "author": "Daniel Hritzkiv <daniel.hritzkiv@gmail.com> (http://danielhritzkiv.com/)",
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^1.20.1",
+    "precommit-hook": "^1.0.2"
+  },
+  "dependencies": {}
+}
