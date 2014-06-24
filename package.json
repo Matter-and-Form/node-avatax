@@ -1,6 +1,6 @@
 {
   "name": "node-avalera",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Node library to communicate with Avalera",
   "main": "index.js",
   "scripts": {
