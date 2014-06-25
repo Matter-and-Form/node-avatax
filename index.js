@@ -23,7 +23,7 @@ function AvaTax(username, password, options) {
 	options = options || {};
 	options.development = options.development || false;//Development or Production
 	options.version = options.version || latestAPIVersion;
-	
+
 	if (options.version > latestAPIVersion) {
 		throw new Error("This library does not support an API version greater than `" + latestAPIVersion + "`. Contact this module's author to allow for newer versions.");
 	}
@@ -85,7 +85,11 @@ AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 			var json = JSON.parse(responseBody);
 
 			if (res.statusCode === 500) {
-				var errorText = json.Messages.Summary ? json.Messages.Summary : "AvaTax server error";
+				console.log(json);
+				var errorText = "AvaTax server error";
+				if (json.Messages && json.Messages.length && json.Messages[0].Summary) {
+					errorText = json.Messages[0].Summary;
+				}
 				var error = new Error(errorText);
 				error.message = errorText;
 				error.code = 500;
@@ -129,7 +133,7 @@ AvaTax.prototype._validateAddress = function(options, next) {
 	};
 
 	if (!(typeof addressObject.Line1 != "undefined" && typeof addressObject.PostalCode != "undefined") || !(typeof addressObject.Line1 != "undefined" && typeof addressObject.City != "undefined" && typeof addressObject.Region != "undefined")) {
-		throw new Error("You must specify at least Line & Postal Code, or Line & City & Region");
+		return next(new Error("You must specify at least Line & Postal Code, or Line & City & Region"));
 	}
 
 	var requestOptions = this.requestOptions();
@@ -173,13 +177,13 @@ AvaTax.prototype._estimateTax = function(options, next) {
 
 	var requestOptions = this.requestOptions();
 	requestOptions.path = url.format({
-		pathname: "/" + this.options.version + '/tax/' + options.latitude + "," + options.longitude + 
+		pathname: "/" + this.options.version + '/tax/' + options.latitude + "," + options.longitude +
 		"/get",
 		query: {
 			saleamount: options.amount
 		}
 	});
-	
+
 	//requestOptions.method = "POST";
 
 	this._makeRequest(requestOptions, requestBody, function(err, json) {
@@ -193,33 +197,52 @@ AvaTax.prototype._estimateTax = function(options, next) {
 };
 
 AvaTax.prototype.estimateTax = function(coordinates, amount, next) {
-	
+
 	var options = {
 		latitude: coordinates[0],
 		longitude: coordinates[1],
 		amount: amount
 	};
 
-	return AvaTax.prototype._estimateTax.call(this, options, next);
+	return AvaTax.prototype._estimateTax.call(this, options, function(err, json) {
+		if (err) {
+			return next(err);
+		}
+
+		next(null, json.Tax);
+	});
 };
+
+AvaTax.prototype.estimateTaxDetails = function(coordinates, amount, next) {
+
+	var options = {
+		latitude: coordinates[0],
+		longitude: coordinates[1],
+		amount: amount
+	};
+
+	return AvaTax.prototype._estimateTax.call(this, options, function(err, json) {
+		if (err) {
+			return next(err);
+		}
+
+		next(null, json.TaxDetails);
+	});
+};
+
 
 AvaTax.prototype._getTax = function(options, next) {
 
 	options = options || {};
 
-	var requestBody = "";
+	var requestBody = JSON.stringify(options, null, '\t');
 	//requestBody = AvaTax.prototype._newRequestBody.call(this, requestBodyOptions);
 
 	var requestOptions = this.requestOptions();
 	requestOptions.path = url.format({
-		pathname: "/" + this.options.version + '/tax/' + options.latitude + "," + options.longitude + 
-		"/get",
-		query: {
-			saleamount: options.amount
-		}
+		pathname: "/" + this.options.version + '/tax/get'
 	});
-	
-	//requestOptions.method = "POST";
+	requestOptions.method = "POST";
 
 	this._makeRequest(requestOptions, requestBody, function(err, json) {
 		if (err) {
@@ -232,7 +255,8 @@ AvaTax.prototype._getTax = function(options, next) {
 };
 
 AvaTax.prototype.getTax = function(fields, next) {
-	
+
+	var i = 0;
 	var options = {
 		CustomerCode: fields.CustomerCode,
 		DocDate: fields.DocDate || new Date(),
@@ -255,7 +279,32 @@ AvaTax.prototype.getTax = function(fields, next) {
 		BusinessIdentificationNo: fields.BusinessIdentificationNo
 	};
 
-	return AvaTax.prototype._estimateTax.call(this, options, next);
+	options.DocDate = [
+		options.DocDate.getFullYear(),
+		options.DocDate.getMonth()+1 < 10? "0" + (options.DocDate.getMonth()+1) : (options.DocDate.getMonth()+1),
+		options.DocDate.getDate() < 10? "0" + options.DocDate.getDate() : options.DocDate.getDate()
+	].join("-");
+
+	if (typeof options.CustomerCode == "undefined" || typeof options.Lines == "undefined" || !Array.isArray(options.Lines) || !options.Lines.length || typeof options.Addresses == "undefined" || !Array.isArray(options.Addresses) || !options.Addresses.length) {
+		return next(new Error("Missing required fields"));
+	}
+
+	for (i = 0; i < options.Lines.length; i++) {
+		var line = options.Lines[i];
+		if (typeof line.LineNo == "undefined" || typeof line.DestinationCode == "undefined" || typeof line.OriginCode == "undefined" || typeof line.Qty == "undefined" || typeof line.Qty != "number" || typeof line.Amount == "undefined" || typeof line.Amount != "number") {
+			return next(new Error("Line indexOf#" + i + " is missing required fields"));
+		}
+	}
+
+	for (i = 0; i < options.Addresses.length; i++) {
+		var address = options.Addresses[i];
+		if (typeof address.AddressCode == "undefined" || (((typeof address.Line1 == "undefined" || typeof address.City == "undefined" || typeof address.Region == "undefined") || (typeof address.Line1 == "undefined" || typeof address.PostalCode == "undefined")) && (typeof address.Latitude == "undefined" || typeof address.Longitude == "undefined"))) {
+			console.log('error should be called');
+			return next(new Error("Address indexOf#" + i + " is missing required fields"));
+		}
+	}
+
+	return AvaTax.prototype._getTax.call(this, options, next);
 };
 
 module.exports = AvaTax;
