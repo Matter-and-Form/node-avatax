@@ -6,58 +6,67 @@ var fs = require('fs');
 var username = "daniel.hritzkiv@gmail.com";
 var password = "h35-ptt-qV7-G4R";
 
-var Avalera = require("../");//avalera;
-var avalera = new Avalera(username, password, {
+var AvaTax = require("../");//avatax;
+var avatax = new AvaTax(username, password, {
 	development: true
 });
-
-var validOrderNumber = 21;
-var validavaleraID = "1394587839-108974-1";
 
 var maxTimeout = 1e4;//10 seconds
 var slowTime = 1e3;//1 second
 
-var address = {
-	street1: "151 Sterling Rd.",
-	street2: "Studio 2",
-	city: "Toronto",
-	province: "Ontario",
-	country: "Canada",
-	postalCode: "M6R 2B2"
+var address = { 
+	Line1: "118 N Clark St",
+	Line2: "Suite 100",
+	Line3: "ATTN Accounts Payable",
+	City: "Chicago",
+	Region: "IL",
+	PostalCode: "60602",
+	Country: "US"
 };
 
-describe('Avalera', function() {
+var address2 = {
+	Line1: "151 Sterling Rd.",
+	Street2: "Studio 2",
+	City: "Toronto",
+	Province: "Ontario",
+	Country: "Canada",
+	PostalCode: "M6R 2B2"
+};
 
-	describe("New Avalera instance", function() {
+var coordinates = [47.627935,-122.51702];
+
+describe('AvaTax', function() {
+
+	describe("New AvaTax instance", function() {
 		it('should throw an error when username and/or passwords are missing', function() {
 			assert.throws(function() {
-				new Avalera();
+				new AvaTax();
 			}, Error);
 
 			assert.throws(function() {
-				new Avalera({
+				new AvaTax({
 					development: false,
 				});
 			}, Error);
 
 			assert.throws(function() {
-				new Avalera("username");
+				new AvaTax("username");
 			}, Error);
 
 			assert.throws(function() {
-				new Avalera("username", {
+				new AvaTax("username", {
 					development: true
 				});
 			}, Error);
 		});
 	});
 
-	describe('#validate()', function() {
+	describe('#validateAddress()', function() {
 		this.timeout(maxTimeout);
 		this.slow(slowTime);
 
 		it('should return a json response', function(done) {
-			avalera.validate(address, function(err, address) {
+			avatax.validateAddress(address, function(err, address) {
 				console.log(err, address);
 				assert.equal(err, null);
 				assert.equal(true, !!address);
@@ -68,7 +77,7 @@ describe('Avalera', function() {
 
 		//currently can't find these addresses and need to figure out error handling;
 		/*it('should return a json response when only providing street and postal code', function(done) {
-			avalera.validate({
+			avatax.validateAddress({
 				street1: address.street1,
 				street2: address.street2,
 				postalCode: address.postalCode
@@ -82,7 +91,7 @@ describe('Avalera', function() {
 		});
 
 		it('should return a json response when only providing street, city, province', function(done) {
-			avalera.validate({
+			avatax.validateAddress({
 				street1: address.street1,
 				street2: address.street2,
 				city: address.city,
@@ -98,19 +107,19 @@ describe('Avalera', function() {
 
 	});
 
-	/*describe('#estimateTax()', function() {
+	describe('#estimateTax()', function() {
 		this.timeout(maxTimeout);
 		this.slow(slowTime);
 
 		it('should return a json response', function(done) {
-			avalera.validate(address, function(err, address) {
-				console.log(err, address);
+			avatax.estimateTax(coordinates, 310.12, function(err, estimate) {
+				console.log(err, estimate);
 				assert.equal(err, null);
-				assert.equal(true, !!address);
+				assert.equal(true, !!estimate);
 				//assert.equal(true, !!address.line1);
 				done();
 			});
 		});
-	});*/
+	});
 
 });

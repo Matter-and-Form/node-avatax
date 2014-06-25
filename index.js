@@ -3,16 +3,18 @@
 var https = require('https');
 var url = require('url');
 
+var latestAPIVersion = "1.0";
+
 /*
 ===========
 Constructor
 ===========
 */
 
-function Avalera(username, password, options) {
+function AvaTax(username, password, options) {
 
 	if (!username || typeof username !== "string" || !password || typeof password !== "string") {
-		throw new Error("Credentials not supplied for Avalera");
+		throw new Error("Credentials not supplied for AvaTax");
 	}
 
 	this.username = username;
@@ -20,7 +22,11 @@ function Avalera(username, password, options) {
 
 	options = options || {};
 	options.development = options.development || false;//Development or Production
-	options.version = options.version || "1.0";
+	options.version = options.version || latestAPIVersion;
+	
+	if (options.version > latestAPIVersion) {
+		throw new Error("This library does not support an API version greater than `" + latestAPIVersion + "`. Contact this module's author to allow for newer versions.");
+	}
 
 	var authenticationHeader = "Basic " + new Buffer([this.username,this.password].join(":"), 'utf8').toString('base64');
 
@@ -63,7 +69,7 @@ function cloneObject(object) {
 	return clone;
 }
 
-Avalera.prototype._makeRequest = function(requestOptions, requestBody, next) {
+AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
 	var responseBody = "";
 
@@ -79,7 +85,7 @@ Avalera.prototype._makeRequest = function(requestOptions, requestBody, next) {
 			var json = JSON.parse(responseBody);
 
 			if (res.statusCode === 500) {
-				var errorText = json.Messages.Summary ? json.Messages.Summary : "Avalera server error";
+				var errorText = json.Messages.Summary ? json.Messages.Summary : "AvaTax server error";
 				var error = new Error(errorText);
 				error.message = errorText;
 				error.code = 500;
@@ -101,28 +107,28 @@ Avalera.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
 /*
 ========
-Validate
+Validate Address
 ========
 */
 
-Avalera.prototype._validate = function(options, next) {
+AvaTax.prototype._validateAddress = function(options, next) {
 
 	options = options || {};
+	var requestBody = "";
 
-	//var requestBody = Avalera.prototype._newRequestBody.call(this, requestBodyOptions);
-
+	//var requestBody = AvaTax.prototype._newRequestBody.call(this, requestBodyOptions);
 
 	var addressObject = {
-		Line1: options.Line1 || options.line1 || options.street1 || options.street,
-		Line2: options.Line2 || options.line2 || options.street2,
-		Line3: options.Line3 || options.line3 || options.street3,
-		City: options.City || options.city,
-		Region: options.Region || options.region || options.province || options.state,
-		Country: options.Country || options.country,
-		PostalCode: options.PostalCode || options.postalCode || options.zipCode
+		Line1: options.Line1,
+		Line2: options.Line2,
+		Line3: options.Line3,
+		City: options.City,
+		Region: options.Region,
+		Country: options.Country,
+		PostalCode: options.PostalCode
 	};
 
-	if ((typeof options.Line1 != "undefined" && typeof options.PostalCode != "undefined") || (typeof options.Line1 != "undefined" && typeof options.City != "undefined" && typeof options.Region != "undefined")) {
+	if (!(typeof addressObject.Line1 != "undefined" && typeof addressObject.PostalCode != "undefined") || !(typeof addressObject.Line1 != "undefined" && typeof addressObject.City != "undefined" && typeof addressObject.Region != "undefined")) {
 		throw new Error("You must specify at least Line & Postal Code, or Line & City & Region");
 	}
 
@@ -132,7 +138,7 @@ Avalera.prototype._validate = function(options, next) {
 		query: addressObject
 	});
 
-	this._makeRequest(requestOptions, "", function(err, json) {
+	this._makeRequest(requestOptions, requestBody, function(err, json) {
 		if (err) {
 			return next(err);
 		}
@@ -142,45 +148,114 @@ Avalera.prototype._validate = function(options, next) {
 
 };
 
-Avalera.prototype.validate = function(options, next) {
+AvaTax.prototype.validateAddress = function(address, next) {
 	if (!next) {//if typeof options is a function?
-		next = options;
-		options = {};
+		next = address;
+		address = {};
 	}
 
-	return Avalera.prototype._validate.call(this, options, next);
+	return AvaTax.prototype._validateAddress.call(this, address, next);
 };
 
-Avalera.prototype.trackById = function(id, options, next) {
 
-	if (!(id && typeof id === "string" || typeof id === "number")) {//use arguments.length?
-		throw new Error("No ID provided.");
-	}
+/*
+========
+Tax
+========
+*/
 
-	if (!next) {//if typeof options is a function?
-		next = options;
-		options = {};
-	}
+AvaTax.prototype._estimateTax = function(options, next) {
 
-	options.id = id;
-	options._multiple = false;//return just one;
-	return Avalera.prototype._track.call(this, options, next);
+	options = options || {};
+
+	var requestBody = "";
+	//requestBody = AvaTax.prototype._newRequestBody.call(this, requestBodyOptions);
+
+	var requestOptions = this.requestOptions();
+	requestOptions.path = url.format({
+		pathname: "/" + this.options.version + '/tax/' + options.latitude + "," + options.longitude + 
+		"/get",
+		query: {
+			saleamount: options.amount
+		}
+	});
+	
+	//requestOptions.method = "POST";
+
+	this._makeRequest(requestOptions, requestBody, function(err, json) {
+		if (err) {
+			return next(err);
+		}
+
+		return next(null, json);
+	});
+
 };
 
-Avalera.prototype.trackByOrderNumber = function(id, options, next) {
+AvaTax.prototype.estimateTax = function(coordinates, amount, next) {
+	
+	var options = {
+		latitude: coordinates[0],
+		longitude: coordinates[1],
+		amount: amount
+	};
 
-	if (!(id && typeof id === "string" || typeof id === "number")) {
-		throw new Error("No ID provided.");
-	}
-
-	if (!next) {//if typeof options is a function?
-		next = options;
-		options = {};
-	}
-
-	options.orderNo = id;
-	options._multiple = false;//return just one;
-	return Avalera.prototype._track.call(this, options, next);
+	return AvaTax.prototype._estimateTax.call(this, options, next);
 };
 
-module.exports = Avalera;
+AvaTax.prototype._getTax = function(options, next) {
+
+	options = options || {};
+
+	var requestBody = "";
+	//requestBody = AvaTax.prototype._newRequestBody.call(this, requestBodyOptions);
+
+	var requestOptions = this.requestOptions();
+	requestOptions.path = url.format({
+		pathname: "/" + this.options.version + '/tax/' + options.latitude + "," + options.longitude + 
+		"/get",
+		query: {
+			saleamount: options.amount
+		}
+	});
+	
+	//requestOptions.method = "POST";
+
+	this._makeRequest(requestOptions, requestBody, function(err, json) {
+		if (err) {
+			return next(err);
+		}
+
+		return next(null, json);
+	});
+
+};
+
+AvaTax.prototype.getTax = function(fields, next) {
+	
+	var options = {
+		CustomerCode: fields.CustomerCode,
+		DocDate: fields.DocDate || new Date(),
+		CompanyCode: fields.CompanyCode,
+		Commit: typeof fields.Commit != "undefined"? fields.Commit : false,
+		CurrencyCode: fields.CurrencyCode || "USD",
+		CustomerUsageType: fields.CustomerUsageType,
+		Discount: fields.Discount,
+		DocCode: fields.DocCode,
+		PurchaseOrderNo: fields.PurchaseOrderNo,
+		ExemptionNo: fields.ExemptionNo,
+		DetailLevel: fields.DetailLevel,
+		DocType: fields.DocType,
+		Lines: fields.Lines,
+		Addresses: fields.Addresses,
+		ReferenceCode: fields.ReferenceCode,
+		PosLaneCode: fields.PosLaneCode,
+		Client: fields.Client || "node-avatax",
+		TaxOverride: fields.TaxOverride,
+		BusinessIdentificationNo: fields.BusinessIdentificationNo
+	};
+
+	return AvaTax.prototype._estimateTax.call(this, options, next);
+};
+
+module.exports = AvaTax;
