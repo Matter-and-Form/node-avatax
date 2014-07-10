@@ -23,6 +23,8 @@ function AvaTax(username, password, options) {
 	options = options || {};
 	options.development = options.development || false;//Development or Production
 	options.version = options.version || latestAPIVersion;
+	options.client = typeof options.client != "undefined"? options.client : "node-avatax";
+	options.client = options.client === false ? undefined : options.client;
 
 	if (options.version > latestAPIVersion) {
 		throw new Error("This library does not support an API version greater than `" + latestAPIVersion + "`. Contact this module's author to allow for newer versions.");
@@ -30,20 +32,19 @@ function AvaTax(username, password, options) {
 
 	var authenticationHeader = "Basic " + new Buffer([this.username,this.password].join(":"), 'utf8').toString('base64');
 
-	var requestOptions = {
-		port: 443,//https
-		method: 'GET',
-		headers: {
-			"Content-Type": "application/json",
-			"Accept": "application/json",
-			"Authorization": authenticationHeader
-		}
-	};
-
-	requestOptions.host = options.development ? 'development.avalara.net' : 'avatax.avalara.net';
-	requestOptions.host = options.host || requestOptions.host;//allow overriding of host completely
-
 	this.requestOptions = function() {
+		var requestOptions = {
+			port: 443,//https
+			method: 'GET',
+			headers: {
+				"Content-Type": "application/json",
+				"Accept": "application/json",
+				"Authorization": authenticationHeader
+			}
+		};
+
+		requestOptions.host = options.development ? 'development.avalara.net' : 'avatax.avalara.net';
+		requestOptions.host = options.host || requestOptions.host;//allow overriding of host completely
 		return requestOptions;
 	};
 	this.options = options;
@@ -73,6 +74,7 @@ AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
 	var responseBody = "";
 
+	console.log(requestBody, requestOptions);
 	var req = https.request(requestOptions, function(res) {
 
 		res.setEncoding('utf-8');
@@ -82,15 +84,22 @@ AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
 		res.on('end', function() {
 
+			var errorText = "AvaTax server error";
+			var error;
+			if (/^4\d\d/.test(res.statusCode)) {
+				error = new Error(errorText);
+				error.message = errorText;
+				error.code = res.statusCode;
+				return next(error);
+			}
+
 			var json = JSON.parse(responseBody);
 
 			if (res.statusCode === 500) {
-				console.log(json);
-				var errorText = "AvaTax server error";
 				if (json.Messages && json.Messages.length && json.Messages[0].Summary) {
 					errorText = json.Messages[0].Summary;
 				}
-				var error = new Error(errorText);
+				error = new Error(errorText);
 				error.message = errorText;
 				error.code = 500;
 				return next(error);
@@ -145,6 +154,15 @@ AvaTax.prototype._validateAddress = function(options, next) {
 	this._makeRequest(requestOptions, requestBody, function(err, json) {
 		if (err) {
 			return next(err);
+		}
+
+		if (json.ResultCode == "Error") {
+			var error = new Error(json.Messages[0].Summary);
+			return next(error);
+		}
+
+		if (json.ResultCode == "Success") {
+			return next(null, json.Address);
 		}
 
 		return next(null, json);
@@ -274,7 +292,7 @@ AvaTax.prototype.getTax = function(fields, next) {
 		Addresses: fields.Addresses,
 		ReferenceCode: fields.ReferenceCode,
 		PosLaneCode: fields.PosLaneCode,
-		Client: fields.Client || "node-avatax",
+		Client: typeof fields.Client != "undefined"? fields.Client : this.options.client,
 		TaxOverride: fields.TaxOverride,
 		BusinessIdentificationNo: fields.BusinessIdentificationNo
 	};
@@ -291,15 +309,14 @@ AvaTax.prototype.getTax = function(fields, next) {
 
 	for (i = 0; i < options.Lines.length; i++) {
 		var line = options.Lines[i];
-		if (typeof line.LineNo == "undefined" || typeof line.DestinationCode == "undefined" || typeof line.OriginCode == "undefined" || typeof line.Qty == "undefined" || typeof line.Qty != "number" || typeof line.Amount == "undefined" || typeof line.Amount != "number") {
+		if (typeof line.LineNo == "undefined" || typeof line.DestinationCode == "undefined" || typeof line.OriginCode == "undefined" || typeof line.Qty == "undefined" || typeof line.Amount == "undefined") {
 			return next(new Error("Line indexOf#" + i + " is missing required fields"));
 		}
 	}
 
 	for (i = 0; i < options.Addresses.length; i++) {
 		var address = options.Addresses[i];
-		if (typeof address.AddressCode == "undefined" || (((typeof address.Line1 == "undefined" || typeof address.City == "undefined" || typeof address.Region == "undefined") || (typeof address.Line1 == "undefined" || typeof address.PostalCode == "undefined")) && (typeof address.Latitude == "undefined" || typeof address.Longitude == "undefined"))) {
-			console.log('error should be called');
+		if (typeof address.AddressCode == "undefined" || (((typeof address.Line1 == "undefined" || typeof address.City == "undefined") || (typeof address.Line1 == "undefined" || typeof address.PostalCode == "undefined")) && (typeof address.Latitude == "undefined" || typeof address.Longitude == "undefined"))) {
 			return next(new Error("Address indexOf#" + i + " is missing required fields"));
 		}
 	}

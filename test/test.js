@@ -56,7 +56,8 @@ var address4 = {
 };
 
 function newGetTaxObject() {
-	var object = {CustomerCode: "101",
+	var object = {
+		CustomerCode: "101",
 		DocDate: new Date("2014-05-13T05:05:30.036Z"),
 		//CompanyCode: fields.CompanyCode,
 		Commit: false,
