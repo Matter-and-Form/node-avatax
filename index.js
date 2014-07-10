@@ -74,7 +74,6 @@ AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
 	var responseBody = "";
 
-	console.log(requestBody, requestOptions);
 	var req = https.request(requestOptions, function(res) {
 
 		res.setEncoding('utf-8');
