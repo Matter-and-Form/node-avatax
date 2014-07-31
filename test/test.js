@@ -3,8 +3,9 @@
 var assert = require("assert");
 var fs = require('fs');
 
-var username = "daniel.hritzkiv@gmail.com";
-var password = "h35-ptt-qV7-G4R";
+var authentication = require("./authentication.json");
+var username = authentication.username;
+var password = authentication.password;
 
 var AvaTax = require("../");//avatax;
 var avatax = new AvaTax(username, password, {

@@ -6,11 +6,10 @@ lib-cov
 *.out
 *.pid
 *.gz
-
 pids
 logs
 results
-
 npm-debug.log
 node_modules
 .DS_Store
+test/authentication.json
