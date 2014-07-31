@@ -4,7 +4,7 @@
   "description": "Node library to communicate with Avalara AvaTax",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --reporter spec"
+    "test": "NODE_ENV=test mocha --reporter spec"
   },
   "keywords": [
     "Avalara",
