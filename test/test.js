@@ -2,6 +2,7 @@
 
 var assert = require("assert");
 var fs = require('fs');
+var uuid = require('node-uuid');
 
 var authentication = require("./authentication.json");
 var username = authentication.username;
@@ -56,19 +57,31 @@ var address4 = {
 	Country: "UK"
 };
 
+var address5 = {
+	AddressCode: "destination",
+	Line1: "19 Brant St.",
+	Line2: "607",
+	City: "Toronto",
+	Region: "Ontario",
+	Country: "Canada",
+	PostalCode: "M5V2L2"
+};
+
 function newGetTaxObject() {
+
+	var id = uuid.v4();
+
 	var object = {
 		CustomerCode: "101",
-		DocDate: new Date("2014-05-13T05:05:30.036Z"),
-		//CompanyCode: fields.CompanyCode,
+		DocDate: new Date(),//new Date("2014-05-13T05:05:30.036Z"),
+		CompanyCode: "M+F",
 		Commit: false,
-		CurrencyCode: "CAD",
+		CurrencyCode: "USD",
 		//CustomerUsageType: fields.CustomerUsageType,
 		//Discount: fields.Discount,
-		//DocCode: fields.DocCode,
-		PurchaseOrderNo: "ABC99",
-		//ExemptionNo: fields.ExemptionNo,
-		//DetailLevel: fields.DetailLevel,
+		DocCode: id,
+		PurchaseOrderNo: id,
+		DetailLevel: "Tax",
 		DocType: "SalesOrder",
 		Lines: [
 			{
@@ -79,11 +92,22 @@ function newGetTaxObject() {
 				Qty: 2,
 				Amount: 1158.99,
 				Discounted: false
+			},
+			{
+				"LineNo": "02",
+				"ItemCode": "SHIPPING",
+				"Qty": "1",
+				"Amount": "15",
+				"OriginCode": "ogigin",
+				"DestinationCode": "destination",
+				"Description": "Shipping Charge",
+				"TaxCode": "FR"
 			}
 		],
-		Addresses: [address3, address2],
+		Addresses: [address5, address2],
 		Client: "node-avatax",
 	};
+
 	return object;
 }
 
@@ -191,12 +215,34 @@ describe('AvaTax', function() {
 		});
 	});
 
-	describe('#getTax()', function() {
+	describe.only('#getTax()', function() {
 		this.timeout(maxTimeout);
 		this.slow(slowTime);
 
+		var consistentID = uuid.v4();
+
 		it('should return an object', function(done) {
 			var getTaxObject = newGetTaxObject();
+			getTaxObject.Addresses = [address2,address5];
+			getTaxObject.DocCode = consistentID;
+			getTaxObject.PurchaseOrderNo = consistentID;
+
+			avatax.getTax(getTaxObject, function(err, returnDoc) {
+				console.log(err, returnDoc);
+				assert.equal(err, null);
+				assert.equal(true, !!returnDoc);
+				//assert.equal(true, !!address.line1);
+				done();
+			});
+		});
+
+		it('should return an object when committed', function(done) {
+			var getTaxObject = newGetTaxObject();
+			getTaxObject.Commit = true;
+			getTaxObject.DocType = "SalesInvoice";
+			getTaxObject.DocCode = consistentID;
+			getTaxObject.PurchaseOrderNo = consistentID;
+
 			avatax.getTax(getTaxObject, function(err, returnDoc) {
 				console.log(err, returnDoc);
 				assert.equal(err, null);
