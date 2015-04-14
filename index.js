@@ -109,7 +109,6 @@ AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 	});
 
 	req.on('error', function(err) {
-		console.log('http req error: ' + err.message || err);
 		return next(err);
 	});
 
@@ -128,19 +127,17 @@ AvaTax.prototype._validateAddress = function(options, next) {
 	options = options || {};
 	var requestBody = "";
 
-	//var requestBody = AvaTax.prototype._newRequestBody.call(this, requestBodyOptions);
+	var addressObject = {};
+	var addressFields = ["Line1", "Line2", "Line3", "City", "Region", "Country", "PostalCode"];
 
-	var addressObject = {
-		Line1: options.Line1,
-		Line2: options.Line2,
-		Line3: options.Line3,
-		City: options.City,
-		Region: options.Region,
-		Country: options.Country,
-		PostalCode: options.PostalCode
-	};
+	for (var key in options) {
+		if (addressFields.indexOf(key) !== -1) {
+			addressObject[key] = options[key];
+		}
+	}
 
-	if (!(typeof addressObject.Line1 != "undefined" && typeof addressObject.PostalCode != "undefined") || !(typeof addressObject.Line1 != "undefined" && typeof addressObject.City != "undefined" && typeof addressObject.Region != "undefined")) {
+	if (!(typeof addressObject.Line1 !== "undefined" && typeof addressObject.PostalCode !== "undefined") && !(typeof addressObject.Line1 !== "undefined" && typeof addressObject.City !== "undefined" && typeof addressObject.Region !== "undefined")) {
+		//return an error if both Line+Postal OR Line+City+Region aren't satisfied
 		return next(new Error("You must specify at least Line & Postal Code, or Line & City & Region"));
 	}
 
@@ -170,7 +167,7 @@ AvaTax.prototype._validateAddress = function(options, next) {
 };
 
 AvaTax.prototype.validateAddress = function(address, next) {
-	if (!next) {//if typeof options is a function?
+	if (!next) {
 		next = address;
 		address = {};
 	}
@@ -268,12 +265,10 @@ AvaTax.prototype._getTax = function(options, next) {
 
 		return next(null, json);
 	});
-
 };
 
 AvaTax.prototype.getTax = function(fields, next) {
 
-	var i = 0;
 	var options = {
 		CustomerCode: fields.CustomerCode,
 		DocDate: fields.DocDate || new Date(),
@@ -306,6 +301,7 @@ AvaTax.prototype.getTax = function(fields, next) {
 		return next(new Error("Missing required fields"));
 	}
 
+	var i = 0;
 	for (i = 0; i < options.Lines.length; i++) {
 		var line = options.Lines[i];
 		if (typeof line.LineNo == "undefined" || typeof line.DestinationCode == "undefined" || typeof line.OriginCode == "undefined" || typeof line.Qty == "undefined" || typeof line.Amount == "undefined") {
