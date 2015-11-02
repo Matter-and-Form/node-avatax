@@ -4,7 +4,9 @@
   "description": "Node library to communicate with Avalara AvaTax",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_ENV=test mocha --reporter spec"
+    "test": "NODE_ENV=test mocha --reporter spec",
+    "lint": "jshint .",
+    "validate": "npm ls"
   },
   "keywords": [
     "Avalara",
@@ -15,9 +17,14 @@
   "author": "Daniel Hritzkiv <daniel.hritzkiv@gmail.com> (http://danielhritzkiv.com/)",
   "license": "MIT",
   "devDependencies": {
-    "mocha": "^2.2.4",
+    "mocha": "^2.3.3",
     "node-uuid": "^1.4.3",
-    "precommit-hook": "^2.0.1"
+    "precommit-hook": "^3.0.0"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "pre-commit": [
+    "lint",
+    "validate",
+    "test"
+  ]
 }

@@ -1,16 +1,18 @@
+/* global describe, it */
+
 "use strict";
 
 var assert = require("assert");
-var fs = require('fs');
 var uuid = require('node-uuid');
 
 var authentication = require("./authentication.json");
 var username = authentication.username;
 var password = authentication.password;
+var development = authentication.development;
 
 var AvaTax = require("../");//avatax;
 var avatax = new AvaTax(username, password, {
-	development: true
+	development: development
 });
 
 var maxTimeout = 1e4;//10 seconds
@@ -52,20 +54,11 @@ var address4 = {
 	Line1: "1 Churchill Place",
 	Line2: "Barclays Bank PLC",
 	City: "London",
-	//Region: "London",
 	PostalCode: "E145HP",
-	Country: "UK"
+	Country: "GB"
 };
 
-var address5 = {
-	AddressCode: "destination",
-	Line1: "19 Brant St.",
-	Line2: "607",
-	City: "Toronto",
-	Region: "Ontario",
-	Country: "Canada",
-	PostalCode: "M5V2L2"
-};
+var coordinates = [47.627935,-122.51702];
 
 function newGetTaxObject() {
 
@@ -73,12 +66,10 @@ function newGetTaxObject() {
 
 	var object = {
 		CustomerCode: "101",
-		DocDate: new Date(),//new Date("2014-05-13T05:05:30.036Z"),
-		CompanyCode: "M+F",
+		DocDate: new Date(),
+		CompanyCode: "M+F_TEST",
 		Commit: false,
 		CurrencyCode: "USD",
-		//CustomerUsageType: fields.CustomerUsageType,
-		//Discount: fields.Discount,
 		DocCode: id,
 		PurchaseOrderNo: id,
 		DetailLevel: "Tax",
@@ -94,24 +85,22 @@ function newGetTaxObject() {
 				Discounted: false
 			},
 			{
-				"LineNo": "02",
-				"ItemCode": "SHIPPING",
-				"Qty": "1",
-				"Amount": "15",
-				"OriginCode": "ogigin",
-				"DestinationCode": "destination",
-				"Description": "Shipping Charge",
-				"TaxCode": "FR"
+				LineNo: "02",
+				ItemCode: "SHIPPING",
+				Qty: 1,
+				Amount: 15,
+				OriginCode: "origin",
+				DestinationCode: "destination",
+				Description: "Shipping Charge",
+				TaxCode: "FR"
 			}
 		],
-		Addresses: [address5, address2],
+		Addresses: [address4, address2],
 		Client: "node-avatax",
 	};
 
 	return object;
 }
-
-var coordinates = [47.627935,-122.51702];
 
 describe('AvaTax', function() {
 
@@ -146,7 +135,7 @@ describe('AvaTax', function() {
 		it('should return a json response', function(done) {
 			avatax.validateAddress(address3, function(err, address) {
 				assert.equal(err, null);
-				assert.equal(true, !!address);
+				assert.ok(address);
 				done();
 			});
 		});
@@ -158,8 +147,7 @@ describe('AvaTax', function() {
 				PostalCode: address.PostalCode
 			}, function(err, address) {
 				assert.equal(err, null);
-				assert.equal(true, !!address);
-				//assert.equal(true, !!address.line1);
+				assert.ok(address);
 				done();
 			});
 		});
@@ -172,8 +160,7 @@ describe('AvaTax', function() {
 				Region: address.Region
 			}, function(err, address) {
 				assert.equal(err, null);
-				assert.equal(true, !!address);
-				//assert.equal(true, !!address.line1);
+				assert.ok(address);
 				done();
 			});
 		});
@@ -187,8 +174,7 @@ describe('AvaTax', function() {
 		it('should return a number', function(done) {
 			avatax.estimateTax(coordinates, 310.12, function(err, estimate) {
 				assert.equal(err, null);
-				assert.equal(true, typeof estimate == "number");
-				//assert.equal(true, !!address.line1);
+				assert.ok(typeof estimate === "number");
 				done();
 			});
 		});
@@ -201,8 +187,7 @@ describe('AvaTax', function() {
 		it('should return an array', function(done) {
 			avatax.estimateTaxDetails(coordinates, 310.12, function(err, estimateDetails) {
 				assert.equal(err, null);
-				assert.equal(true, Array.isArray(estimateDetails));
-				//assert.equal(true, !!address.line1);
+				assert.ok(Array.isArray(estimateDetails));
 				done();
 			});
 		});
@@ -216,14 +201,13 @@ describe('AvaTax', function() {
 
 		it('should return an object', function(done) {
 			var getTaxObject = newGetTaxObject();
-			getTaxObject.Addresses = [address2,address5];
+			getTaxObject.Addresses = [address2, address4];
 			getTaxObject.DocCode = consistentID;
 			getTaxObject.PurchaseOrderNo = consistentID;
 
 			avatax.getTax(getTaxObject, function(err, returnDoc) {
 				assert.equal(err, null);
-				assert.equal(true, !!returnDoc);
-				//assert.equal(true, !!address.line1);
+				assert.ok(returnDoc);
 				done();
 			});
 		});
@@ -237,8 +221,7 @@ describe('AvaTax', function() {
 
 			avatax.getTax(getTaxObject, function(err, returnDoc) {
 				assert.equal(err, null);
-				assert.equal(true, !!returnDoc);
-				//assert.equal(true, !!address.line1);
+				assert.ok(returnDoc);
 				done();
 			});
 		});
@@ -246,10 +229,10 @@ describe('AvaTax', function() {
 		it('should throw an error', function(done) {
 			var getTaxObject = newGetTaxObject();
 			getTaxObject.Addresses = [];//remove address, causing a requirements error;
+
 			avatax.getTax(getTaxObject, function(err, returnDoc) {
-				assert.equal(true, !!err);
+				assert.ok(err);
 				assert.equal(undefined, returnDoc);
-				//assert.equal(true, !!address.line1);
 				done();
 			});
 		});

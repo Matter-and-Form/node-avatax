@@ -23,7 +23,7 @@ function AvaTax(username, password, options) {
 	options = options || {};
 	options.development = options.development || false;//Development or Production
 	options.version = options.version || latestAPIVersion;
-	options.client = typeof options.client != "undefined"? options.client : "node-avatax";
+	options.client = typeof options.client !== "undefined"? options.client : "node-avatax";
 	options.client = options.client === false ? undefined : options.client;
 
 	if (options.version > latestAPIVersion) {
@@ -59,17 +59,6 @@ Utilities
 =========
 */
 
-
-function cloneObject(object) {
-	var clone = {};
-	for (var key in object) {
-		if (object.hasOwnProperty(key)) {
-			clone[key] = object[key];
-		}
-	}
-	return clone;
-}
-
 AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
 	var responseBody = "";
@@ -85,22 +74,23 @@ AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
 			var errorText = "AvaTax server error";
 			var error;
-			if (/^4\d\d/.test(res.statusCode)) {
-				error = new Error(errorText);
-				error.message = errorText;
-				error.code = res.statusCode;
-				return next(error);
-			}
 
-			var json = JSON.parse(responseBody);
+			var json = null;
 
-			if (res.statusCode === 500) {
-				if (json.Messages && json.Messages.length && json.Messages[0].Summary) {
+			try {
+				json = JSON.parse(responseBody);
+			} catch (e) {}
+
+			if (res.statusCode >= 400) {
+
+				if (json && json.Messages && json.Messages.length && json.Messages[0].Summary) {
 					errorText = json.Messages[0].Summary;
 				}
+
 				error = new Error(errorText);
 				error.message = errorText;
-				error.code = 500;
+
+				error.code = res.statusCode;
 				return next(error);
 			}
 
@@ -152,12 +142,12 @@ AvaTax.prototype._validateAddress = function(options, next) {
 			return next(err);
 		}
 
-		if (json.ResultCode == "Error") {
+		if (json.ResultCode === "Error") {
 			var error = new Error(json.Messages[0].Summary);
 			return next(error);
 		}
 
-		if (json.ResultCode == "Success") {
+		if (json.ResultCode === "Success") {
 			return next(null, json.Address);
 		}
 
@@ -273,7 +263,7 @@ AvaTax.prototype.getTax = function(fields, next) {
 		CustomerCode: fields.CustomerCode,
 		DocDate: fields.DocDate || new Date(),
 		CompanyCode: fields.CompanyCode,
-		Commit: typeof fields.Commit != "undefined"? fields.Commit : false,
+		Commit: typeof fields.Commit !== "undefined"? fields.Commit : false,
 		CurrencyCode: fields.CurrencyCode || "USD",
 		CustomerUsageType: fields.CustomerUsageType,
 		Discount: fields.Discount,
@@ -286,7 +276,7 @@ AvaTax.prototype.getTax = function(fields, next) {
 		Addresses: fields.Addresses,
 		ReferenceCode: fields.ReferenceCode,
 		PosLaneCode: fields.PosLaneCode,
-		Client: typeof fields.Client != "undefined"? fields.Client : this.options.client,
+		Client: typeof fields.Client !== "undefined"? fields.Client : this.options.client,
 		TaxOverride: fields.TaxOverride,
 		BusinessIdentificationNo: fields.BusinessIdentificationNo
 	};
@@ -297,21 +287,21 @@ AvaTax.prototype.getTax = function(fields, next) {
 		options.DocDate.getDate() < 10? "0" + options.DocDate.getDate() : options.DocDate.getDate()
 	].join("-");
 
-	if (typeof options.CustomerCode == "undefined" || typeof options.Lines == "undefined" || !Array.isArray(options.Lines) || !options.Lines.length || typeof options.Addresses == "undefined" || !Array.isArray(options.Addresses) || !options.Addresses.length) {
+	if (typeof options.CustomerCode === "undefined" || typeof options.Lines === "undefined" || !Array.isArray(options.Lines) || !options.Lines.length || typeof options.Addresses === "undefined" || !Array.isArray(options.Addresses) || !options.Addresses.length) {
 		return next(new Error("Missing required fields"));
 	}
 
 	var i = 0;
 	for (i = 0; i < options.Lines.length; i++) {
 		var line = options.Lines[i];
-		if (typeof line.LineNo == "undefined" || typeof line.DestinationCode == "undefined" || typeof line.OriginCode == "undefined" || typeof line.Qty == "undefined" || typeof line.Amount == "undefined") {
+		if (typeof line.LineNo === "undefined" || typeof line.DestinationCode === "undefined" || typeof line.OriginCode === "undefined" || typeof line.Qty === "undefined" || typeof line.Amount === "undefined") {
 			return next(new Error("Line indexOf#" + i + " is missing required fields"));
 		}
 	}
 
 	for (i = 0; i < options.Addresses.length; i++) {
 		var address = options.Addresses[i];
-		if (typeof address.AddressCode == "undefined" || (((typeof address.Line1 == "undefined" || typeof address.City == "undefined") || (typeof address.Line1 == "undefined" || typeof address.PostalCode == "undefined")) && (typeof address.Latitude == "undefined" || typeof address.Longitude == "undefined"))) {
+		if (typeof address.AddressCode === "undefined" || (((typeof address.Line1 === "undefined" || typeof address.City === "undefined") || (typeof address.Line1 === "undefined" || typeof address.PostalCode === "undefined")) && (typeof address.Latitude === "undefined" || typeof address.Longitude === "undefined"))) {
 			return next(new Error("Address indexOf#" + i + " is missing required fields"));
 		}
 	}
