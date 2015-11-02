@@ -1,4 +1,5 @@
 {
 	"username": "USERNAME_OR_COMPANY-CODE",
-	"password": "PASSWORD_OR_LICENSE-KEY"
+	"password": "PASSWORD_OR_LICENSE-KEY",
+	"development": true
 }
