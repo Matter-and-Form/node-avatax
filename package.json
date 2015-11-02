@@ -1,6 +1,6 @@
 {
   "name": "avatax",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Node library to communicate with Avalara AvaTax",
   "main": "index.js",
   "scripts": {
