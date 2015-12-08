@@ -56,7 +56,7 @@ var address4 = {
 	Country: "GB"
 };
 
-var coordinates = [47.627935,-122.51702];
+var coordinates = [37.331686, -122.030656];
 
 function newGetTaxObject() {
 
@@ -169,23 +169,13 @@ describe('AvaTax', function() {
 		this.timeout(maxTimeout);
 		this.slow(slowTime);
 
-		it('should return a number', function(done) {
-			avatax.estimateTax(coordinates, 310.12, function(err, estimate) {
+		it('should return an object for coordinates and an amount', function(done) {
+			avatax.estimateTax(coordinates[0], coordinates[1], 310.12, function(err, estimate) {
 				assert.equal(err, null);
-				assert.ok(typeof estimate === "number");
-				done();
-			});
-		});
-	});
-
-	describe('#estimateTaxDetails()', function() {
-		this.timeout(maxTimeout);
-		this.slow(slowTime);
-
-		it('should return an array', function(done) {
-			avatax.estimateTaxDetails(coordinates, 310.12, function(err, estimateDetails) {
-				assert.equal(err, null);
-				assert.ok(Array.isArray(estimateDetails));
+				assert.ok(estimate);
+				assert.equal(typeof estimate.Rate, "number");
+				assert.equal(typeof estimate.Tax, "number");
+				assert.ok(estimate.TaxDetails);
 				done();
 			});
 		});

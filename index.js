@@ -204,40 +204,20 @@ AvaTax.prototype._estimateTax = function(options, next) {
 	this._makeRequest(requestOptions, requestBody, next);
 };
 
-AvaTax.prototype.estimateTax = function(coordinates, amount, next) {
+AvaTax.prototype.estimateTax = function(latitude, longitude, amount, next) {
+	
+	if (!isFinite(latitude) || !isFinite(longitude) || !isFinite(amount)) {
+		throw new Error("Invalid arguments for `estimateTax`");
+	}
 
 	var options = {
-		latitude: coordinates[0],
-		longitude: coordinates[1],
+		latitude: latitude,
+		longitude: longitude,
 		amount: amount
 	};
 
-	return AvaTax.prototype._estimateTax.call(this, options, function(err, json) {
-		if (err) {
-			return next(err);
-		}
-
-		next(null, json.Tax);
-	});
+	return AvaTax.prototype._estimateTax.call(this, options, next);
 };
-
-AvaTax.prototype.estimateTaxDetails = function(coordinates, amount, next) {
-
-	var options = {
-		latitude: coordinates[0],
-		longitude: coordinates[1],
-		amount: amount
-	};
-
-	return AvaTax.prototype._estimateTax.call(this, options, function(err, json) {
-		if (err) {
-			return next(err);
-		}
-
-		next(null, json.TaxDetails);
-	});
-};
-
 
 AvaTax.prototype._getTax = function(options, next) {
 
