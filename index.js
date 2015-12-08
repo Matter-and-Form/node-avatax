@@ -65,10 +65,9 @@ Utilities
 
 AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 
-	var responseBody = "";
-
 	var req = https.request(requestOptions, function(res) {
-
+		
+		var responseBody = "";
 		res.setEncoding('utf-8');
 		
 		res.on('data', function(chunk) {
@@ -106,9 +105,8 @@ AvaTax.prototype._makeRequest = function(requestOptions, requestBody, next) {
 	});
 
 	req.on('error', next);
-
-	req.write(requestBody);
-	req.end();
+	
+	req.end(requestBody);
 };
 
 /*
@@ -140,7 +138,7 @@ AvaTax.prototype._validateAddress = function(options, next) {
 		query: options
 	});
 
-	this._makeRequest(requestOptions, requestBody, function(err, json) {
+	this._makeRequest(requestOptions, null, function(err, json) {
 		if (err) {
 			return next(err);
 		}
@@ -179,8 +177,6 @@ AvaTax.prototype._estimateTax = function(options, next) {
 
 	options = options || {};
 
-	var requestBody = "";
-
 	var requestOptions = this.requestOptions();
 	
 	requestOptions.path = url.format({
@@ -190,7 +186,7 @@ AvaTax.prototype._estimateTax = function(options, next) {
 		}
 	});
 
-	this._makeRequest(requestOptions, requestBody, next);
+	this._makeRequest(requestOptions, null, next);
 };
 
 AvaTax.prototype.estimateTax = function(latitude, longitude, amount, next) {
