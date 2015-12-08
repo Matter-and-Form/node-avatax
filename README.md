@@ -4,7 +4,7 @@ Node library to make requests to the Avalara Avatax API
 
 ## Installation
 
-```js
+```
 npm install --save avatax
 ```
 
@@ -55,7 +55,7 @@ avatax.getTax(taxObject, callback);
 ### `estimateTax`
 
 ```js
-avatax.getTax(latitude, longitude, amount, callback);
+avatax.estimateTax(latitude, longitude, amount, callback);
 ```
 
 - `latitude`: Number. Required.
