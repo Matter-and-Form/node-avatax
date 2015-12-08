@@ -1,6 +1,6 @@
 {
   "name": "avatax",
-  "version": "0.0.9",
+  "version": "1.0.0",
   "description": "Node library to communicate with Avalara AvaTax",
   "main": "index.js",
   "scripts": {
@@ -23,8 +23,8 @@
     "precommit-hook": "^3.0.0"
   },
   "repository": {
-	  "type" : "git",
-	  "url" : "https://github.com/Matter-and-Form/node-avatax.git"
+    "type": "git",
+    "url": "https://github.com/Matter-and-Form/node-avatax.git"
   },
   "dependencies": {},
   "pre-commit": [
