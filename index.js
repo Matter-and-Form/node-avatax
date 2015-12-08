@@ -117,39 +117,27 @@ Validate Address
 ========
 */
 
-AvaTax.prototype._validateAddress = function(options, next) {
-
-	options = options || {};
-	var requestBody = "";
-
-	var addressObject = {};
-	var addressFields = ["Line1", "Line2", "Line3", "City", "Region", "Country", "PostalCode"];
-
-	Object.keys(options).filter(function(key) {
-		return addressFields.indexOf(key) !== -1;
-	}).forEach(function(key) {
-		addressObject[key] = options[key];
-	});
-
-	if (!(
-			addressObject.Line1 !== undefined &&
-			addressObject.PostalCode !== undefined
-		) &&
-		!(
-			addressObject.Line1 !== undefined &&
-			addressObject.City !== undefined &&
-			addressObject.Region !== undefined
+//returns true if all required fields are present
+function validateAddressFields(address) {
+	return address && (
+		(
+			address.Line1 !== undefined &&
+			address.PostalCode !== undefined
+		) || (
+			address.Line1 !== undefined &&
+			address.City !== undefined &&
+			address.Region !== undefined
 		)
-	) {
-		//return an error if both Line+Postal OR Line+City+Region aren't satisfied
-		return next(new Error("You must specify at least Line & Postal Code, or Line & City & Region"));
-	}
+	);
+}
+
+AvaTax.prototype._validateAddress = function(options, next) {
 
 	var requestOptions = this.requestOptions();
 	
 	requestOptions.path = url.format({
 		pathname: "/" + this.options.version + '/address/validate',
-		query: addressObject
+		query: options
 	});
 
 	this._makeRequest(requestOptions, requestBody, function(err, json) {
@@ -171,9 +159,10 @@ AvaTax.prototype._validateAddress = function(options, next) {
 };
 
 AvaTax.prototype.validateAddress = function(address, next) {
-	if (!next) {
-		next = address;
-		address = {};
+	
+	if (!validateAddressFields(address)) {
+		//return an error if both Line+Postal OR Line+City+Region aren't satisfied
+		return next(new Error("You must specify at least Line & Postal Code, or Line & City & Region"));
 	}
 
 	return AvaTax.prototype._validateAddress.call(this, address, next);
@@ -235,48 +224,33 @@ AvaTax.prototype._getTax = function(options, next) {
 	this._makeRequest(requestOptions, requestBody, next);
 };
 
-AvaTax.prototype.getTax = function(fields, next) {
+AvaTax.prototype.getTax = function(options, next) {
 	
-	fields = fields || {};
-
-	var options = {
-		CustomerCode: fields.CustomerCode,
-		DocDate: fields.DocDate || new Date(),
-		CompanyCode: fields.CompanyCode,
-		Commit: fields.Commit !== undefined ? fields.Commit : false,
-		CurrencyCode: fields.CurrencyCode || "USD",
-		CustomerUsageType: fields.CustomerUsageType,
-		Discount: fields.Discount,
-		DocCode: fields.DocCode,
-		PurchaseOrderNo: fields.PurchaseOrderNo,
-		ExemptionNo: fields.ExemptionNo,
-		DetailLevel: fields.DetailLevel,
-		DocType: fields.DocType,
-		Lines: fields.Lines,
-		Addresses: fields.Addresses,
-		ReferenceCode: fields.ReferenceCode,
-		PosLaneCode: fields.PosLaneCode,
-		Client: fields.Client !== undefined ? fields.Client : this.options.client,
-		TaxOverride: fields.TaxOverride,
-		BusinessIdentificationNo: fields.BusinessIdentificationNo
-	};
+	if (!options) {
+		throw new Error("Options are missing for `getTax`");
+	}
 	
-	var docDateYear = options.DocDate.getFullYear();
-	var docDateMonth = options.DocDate.getMonth() + 1;
-	var docDateDate = options.DocDate.getDate();
-
-	options.DocDate = [
-		docDateYear,
-		docDateMonth < 10 ? "0" + docDateMonth : docDateMonth,
-		docDateDate < 10 ? "0" + docDateDate : docDateDate
-	].join("-");
-
+	options.DocDate = options.DocDate || new Date();
+	options.Commit = options.Commit !== undefined ? options.Commit : false;
+	options.CurrencyCode = options.CurrencyCode || "USD";
+	options.Client = options.Client !== undefined ? options.Client : this.options.client;
+	
+	if (options.DocDate instanceof Date) {
+		var docDateYear = options.DocDate.getFullYear();
+		var docDateMonth = options.DocDate.getMonth() + 1;
+		var docDateDate = options.DocDate.getDate();
+	
+		options.DocDate = [
+			docDateYear,
+			docDateMonth < 10 ? "0" + docDateMonth : docDateMonth,
+			docDateDate < 10 ? "0" + docDateDate : docDateDate
+		].join("-");
+	}
+	
 	if (
 		options.CustomerCode === undefined ||
-		options.Lines === undefined ||
 		!Array.isArray(options.Lines) ||
 		!options.Lines.length ||
-		options.Addresses === undefined ||
 		!Array.isArray(options.Addresses) ||
 		!options.Addresses.length
 	) {
@@ -290,10 +264,28 @@ AvaTax.prototype.getTax = function(fields, next) {
 			line.LineNo === undefined ||
 			line.DestinationCode === undefined ||
 			line.OriginCode === undefined ||
-			line.Qty === undefined ||
-			line.Amount === undefined
+			!isFinite(line.Qty) ||
+			!isFinite(line.Amount)
 		) {
 			err = new Error("Line indexOf#" + index + " is missing required fields");
+			return err;
+		}
+	});
+	
+	options.Addresses.some(function(address, index) {
+		
+		if (
+			address.AddressCode === undefined ||
+			!(
+				validateAddressFields(address) ||
+				address.TaxRegionId !== undefined || 
+				(
+					address.Latitude !== undefined &&
+					address.Longitude !== undefined
+				)
+			)
+		) {
+			err = next(new Error("Address indexOf#" + index + " is missing required fields"));
 			return err;
 		}
 	});
@@ -301,24 +293,6 @@ AvaTax.prototype.getTax = function(fields, next) {
 	if (err) {
 		return next(err);
 	}
-	
-	options.Addresses.some(function(address, index) {
-		if (
-			address.AddressCode === undefined ||
-			(
-				(
-					(address.Line1 === undefined || address.City === undefined) ||
-					(address.Line1 === undefined || address.PostalCode === undefined)
-				) &&
-				(
-					address.Latitude === undefined ||
-					address.Longitude === undefined
-				)
-			)
-		) {
-			return next(new Error("Address indexOf#" + index + " is missing required fields"));
-		}
-	});
 
 	return AvaTax.prototype._getTax.call(this, options, next);
 };

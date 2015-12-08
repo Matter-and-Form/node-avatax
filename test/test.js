@@ -24,7 +24,8 @@ var address = {
 	City: "Chicago",
 	Region: "IL",
 	PostalCode: "60602",
-	Country: "US"
+	Country: "US",
+	TaxRegionId: 2062953
 };
 
 var address2 = {
@@ -162,6 +163,47 @@ describe('AvaTax', function() {
 				done();
 			});
 		});
+		
+		it('should return an error when an empty address is passed in', function(done) {
+			avatax.validateAddress({}, function(err, address) {
+				assert.ok(err);
+				console.log(err);
+				assert.equal(address, null);
+				done();
+			});
+		});
+		
+		it('should return an error when only Line1 is specified', function(done) {
+			avatax.validateAddress({
+				Line1: address.Line1
+			}, function(err, address) {
+				assert.ok(err);
+				assert.equal(address, null);
+				done();
+			});
+		});
+		
+		it('should return an error when only Line1 and City are specified', function(done) {
+			avatax.validateAddress({
+				Line1: address.Line1,
+				City: address.City
+			}, function(err, address) {
+				assert.ok(err);
+				assert.equal(address, null);
+				done();
+			});
+		});
+		
+		it('should return an error when only Line1 and Region are specified', function(done) {
+			avatax.validateAddress({
+				Line1: address.Line1,
+				Region: address.Region
+			}, function(err, address) {
+				assert.ok(err);
+				assert.equal(address, null);
+				done();
+			});
+		});
 
 	});
 
@@ -178,6 +220,23 @@ describe('AvaTax', function() {
 				assert.ok(estimate.TaxDetails);
 				done();
 			});
+		});
+
+		it('should return an object for coordinates and an amount when passed in as strings', function(done) {
+			avatax.estimateTax(coordinates[0].toString(), coordinates[1].toString(), (310.12).toFixed(2), function(err, estimate) {
+				assert.equal(err, null);
+				assert.ok(estimate);
+				assert.equal(typeof estimate.Rate, "number");
+				assert.equal(typeof estimate.Tax, "number");
+				assert.ok(estimate.TaxDetails);
+				done();
+			});
+		});
+		
+		it('should throw an error when amount is omitted', function() {
+			assert.throws(function() {
+				avatax.estimateTax(coordinates[0], coordinates[1], function() {});
+			}, Error);
 		});
 	});
 
@@ -213,8 +272,43 @@ describe('AvaTax', function() {
 				done();
 			});
 		});
+		
+		it('should return an object when referencing an address via `TaxRegionId`', function(done) {
+			var id = uuid.v4();
+			var getTaxObject = newGetTaxObject();
+			getTaxObject.Addresses = [address2, {
+				TaxRegionId: address.TaxRegionId,
+				AddressCode: address.AddressCode
+			}];
+			getTaxObject.DocCode = id;
+			getTaxObject.PurchaseOrderNo = id;
 
-		it('should return an error', function(done) {
+			avatax.getTax(getTaxObject, function(err, returnDoc) {
+				assert.equal(err, null);
+				assert.ok(returnDoc);
+				done();
+			});
+		});
+		
+		it('should return an object when referencing an address via `Latitude` and `Longitude`', function(done) {
+			var id = uuid.v4();
+			var getTaxObject = newGetTaxObject();
+			getTaxObject.Addresses = [address2, {
+				Latitude: coordinates[0],
+				Longitude: coordinates[1],
+				AddressCode: address.AddressCode
+			}];
+			getTaxObject.DocCode = id;
+			getTaxObject.PurchaseOrderNo = id;
+
+			avatax.getTax(getTaxObject, function(err, returnDoc) {
+				assert.equal(err, null);
+				assert.ok(returnDoc);
+				done();
+			});
+		});
+
+		it('should return an error when there are no addresses', function(done) {
 			var getTaxObject = newGetTaxObject();
 			getTaxObject.Addresses = [];//remove address, causing a requirements error;
 
