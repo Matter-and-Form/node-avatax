@@ -6,13 +6,11 @@ var assert = require("assert");
 var uuid = require('node-uuid');
 
 var authentication = require("./authentication.json");
-var username = authentication.username;
-var password = authentication.password;
-var development = authentication.development;
 
 var AvaTax = require("../");//avatax;
-var avatax = new AvaTax(username, password, {
-	development: development
+
+var avatax = new AvaTax(authentication.username, authentication.password, {
+	development: authentication.development
 });
 
 var maxTimeout = 1e4;//10 seconds
@@ -77,7 +75,7 @@ function newGetTaxObject() {
 		Lines: [
 			{
 				LineNo: "1",
-				DestinationCode : "destination",
+				DestinationCode: "destination",
 				OriginCode: "origin",
 				ItemCode: "MFS1V1",
 				Qty: 2,
@@ -96,7 +94,7 @@ function newGetTaxObject() {
 			}
 		],
 		Addresses: [address4, address2],
-		Client: "node-avatax",
+		Client: "node-avatax"
 	};
 
 	return object;
@@ -112,7 +110,7 @@ describe('AvaTax', function() {
 
 			assert.throws(function() {
 				new AvaTax({
-					development: false,
+					development: false
 				});
 			}, Error);
 
@@ -226,13 +224,13 @@ describe('AvaTax', function() {
 			});
 		});
 
-		it('should throw an error', function(done) {
+		it('should return an error', function(done) {
 			var getTaxObject = newGetTaxObject();
 			getTaxObject.Addresses = [];//remove address, causing a requirements error;
 
 			avatax.getTax(getTaxObject, function(err, returnDoc) {
 				assert.ok(err);
-				assert.equal(undefined, returnDoc);
+				assert.equal(returnDoc, undefined);
 				done();
 			});
 		});
