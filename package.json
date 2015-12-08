@@ -22,6 +22,10 @@
     "node-uuid": "^1.4.3",
     "precommit-hook": "^3.0.0"
   },
+  "repository": {
+	  "type" : "git",
+	  "url" : "https://github.com/Matter-and-Form/node-avatax.git"
+  },
   "dependencies": {},
   "pre-commit": [
     "lint",
